@@ -29,8 +29,6 @@ class LabelReviewApp:
         self.image_dir = image_dir
         self.label_dir = label_dir
         self.image_paths = discover_images(self.image_dir)
-        if not self.image_paths:
-            raise SystemExit(f"No images found in {image_dir}")
 
         self.index = 0
         self.boxes: List[LabelBox] = []

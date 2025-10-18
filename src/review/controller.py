@@ -41,8 +41,6 @@ class LabelReviewController:
         self.label_dir = label_dir
         self.view = view
         self.image_paths = discover_images(self.image_dir)
-        if not self.image_paths:
-            raise SystemExit(f"No images found in {image_dir}")
         self.index = 0
         self.boxes: List[LabelBox] = []
         self.display_width = 1
@@ -62,6 +60,17 @@ class LabelReviewController:
         return self.label_dir / f"{image_path.stem}.txt"
 
     def load_current(self) -> None:
+        if not self.image_paths:
+            # Empty state: clear canvas/list and show helpful status
+            try:
+                self.view.canvas.delete("all")
+            except Exception:
+                pass
+            self.boxes = []
+            self._update_title()
+            self._refresh_list()
+            self.view.set_status("No images found. Use the Folders panel to select your image and label directories.")
+            return
         current = self.image_paths[self.index]
         image = Image.open(current).convert("RGB")
         self.boxes = read_yolo_labels(self._label_path(current))
@@ -77,6 +86,9 @@ class LabelReviewController:
     # View helpers
     def _update_title(self) -> None:
         dirty_mark = " *" if getattr(self, "dirty", False) else ""
+        if not self.image_paths:
+            self.view.set_title(f"Label Review - 0/0{dirty_mark}")
+            return
         current = self.image_paths[self.index]
         self.view.set_title(
             f"Label Review - {current.name} ({self.index + 1}/{len(self.image_paths)}){dirty_mark}"
@@ -107,11 +119,17 @@ class LabelReviewController:
 
     # Navigation
     def prev_image(self) -> None:
+        if not self.image_paths:
+            self.view.set_status("No images to navigate.")
+            return
         self.save_labels()
         self.index = (self.index - 1) % len(self.image_paths)
         self.load_current()
 
     def next_image(self) -> None:
+        if not self.image_paths:
+            self.view.set_status("No images to navigate.")
+            return
         self.save_labels()
         self.index = (self.index + 1) % len(self.image_paths)
         self.load_current()
@@ -123,6 +141,9 @@ class LabelReviewController:
 
     # Add/delete/save
     def start_add_box(self) -> None:
+        if not self.image_paths:
+            self.view.set_status("No image loaded. Select an image directory first.")
+            return
         self.add_mode = True
         self.add_start = None
         self.view.clear_preview_rect()
@@ -146,6 +167,9 @@ class LabelReviewController:
         self.view.set_status(f"Deleted {len(selected)} {noun}.")
 
     def save_labels(self) -> None:
+        if not self.image_paths:
+            self.view.set_status("Nothing to save.")
+            return
         label_path = self._label_path(self.image_paths[self.index])
         if self.boxes:
             write_yolo_labels(label_path, self.boxes)
@@ -409,7 +433,23 @@ class LabelReviewController:
             self.view.set_status(f"Image folder missing: {image_dir}")
             return
         if not new_images:
-            self.view.set_status(f"No images found in {image_dir}")
+            # Switch to the selected folders but show empty state
+            if self.dirty:
+                self.save_labels()
+            self.image_dir = image_dir
+            self.label_dir = label_dir
+            self.image_paths = []
+            self.index = 0
+            self.boxes = []
+            self.add_mode = False
+            self.add_start = None
+            self._clear_resize_state()
+            self.view.clear_preview_rect()
+            self.view.set_selection([])
+            self._reload_classes()
+            self.view.set_directory_display(self.image_dir, self.label_dir)
+            self._set_dirty(False)
+            self.load_current()
             return
         if self.dirty:
             self.save_labels()
