@@ -75,3 +75,4 @@ local_settings.py
 
 # Keep labels directory tracked; adjust rules above if you want to ignore label files too
 # (e.g. yolo_dataset/labels/)
+seed_images/
