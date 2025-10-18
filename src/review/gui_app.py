@@ -21,6 +21,7 @@ COLOR_PREVIEW = "#ffcc00"
 BOX_LINE_WIDTH = 2
 PREVIEW_DASH = (4, 2)
 MIN_BOX_SIZE_NORM = 1e-3
+HANDLE_SIZE = 8
 
 
 class LabelReviewApp:
@@ -36,6 +37,8 @@ class LabelReviewApp:
         self.add_mode = False
         self.add_start: tuple[float, float] | None = None
         self.dirty = False
+        self.resize_target = None
+        self.resize_start_box = None
 
         self.root = tk.Tk()
         self.root.title("Label Review")
@@ -130,6 +133,7 @@ class LabelReviewApp:
 
     def _draw_boxes(self) -> None:
         self.canvas.delete("box")
+        self.canvas.delete("handle")
         selected = set(self._selected_indices())
         for idx, box in enumerate(self.boxes):
             x1, y1, x2, y2 = self._normalized_to_canvas(box)
@@ -137,6 +141,9 @@ class LabelReviewApp:
             self.canvas.create_rectangle(
                 x1, y1, x2, y2, outline=color, width=BOX_LINE_WIDTH, tags=("box", f"box-{idx}")
             )
+            if idx in selected:
+                self._draw_handles(idx, x1, y1, x2, y2)
+        self.canvas.tag_raise("handle")
 
     def _normalized_to_canvas(self, box: LabelBox) -> tuple[float, float, float, float]:
         w = box.width * self.display_width
@@ -180,39 +187,52 @@ class LabelReviewApp:
                 event.x, event.y, event.x, event.y, outline=COLOR_PREVIEW, width=BOX_LINE_WIDTH, dash=PREVIEW_DASH
             )
             self.status.configure(text="Drag to size the box, release to confirm.")
-        else:
-            idx = self._find_box_at(event.x, event.y)
-            if idx is not None:
-                try:
-                    state = int(event.state)
-                except (TypeError, ValueError):
-                    state = 0
-                ctrl = bool(state & 0x0004)
-                shift = bool(state & 0x0001)
-                if shift:
-                    current = self._selected_indices()
-                    anchor = current[0] if current else idx
-                    start = min(anchor, idx)
-                    end = max(anchor, idx)
-                    self.listbox.selection_clear(0, tk.END)
-                    for i in range(start, end + 1):
-                        self.listbox.selection_set(i)
-                elif ctrl:
-                    if idx in self._selected_indices():
-                        self.listbox.selection_clear(idx)
-                    else:
-                        self.listbox.selection_set(idx)
+            return
+
+        handle = self._detect_handle()
+        if handle is not None:
+            idx, corner = handle
+            self._start_resize(idx, corner)
+            return
+
+        idx = self._find_box_at(event.x, event.y)
+        if idx is not None:
+            try:
+                state = int(event.state)
+            except (TypeError, ValueError):
+                state = 0
+            ctrl = bool(state & 0x0004)
+            shift = bool(state & 0x0001)
+            if shift:
+                current = self._selected_indices()
+                anchor = current[0] if current else idx
+                start = min(anchor, idx)
+                end = max(anchor, idx)
+                self.listbox.selection_clear(0, tk.END)
+                for i in range(start, end + 1):
+                    self.listbox.selection_set(i)
+            elif ctrl:
+                if idx in self._selected_indices():
+                    self.listbox.selection_clear(idx)
                 else:
-                    self.listbox.selection_clear(0, tk.END)
                     self.listbox.selection_set(idx)
-                self._draw_boxes()
+            else:
+                self.listbox.selection_clear(0, tk.END)
+                self.listbox.selection_set(idx)
+            self._draw_boxes()
 
     def _on_canvas_drag(self, event: tk.Event) -> None:
+        if self.resize_target is not None:
+            self._update_resize(event.x, event.y)
+            return
         if not self.add_mode or self.add_start is None or self._preview_rect is None:
             return
         self.canvas.coords(self._preview_rect, self.add_start[0], self.add_start[1], event.x, event.y)
 
     def _on_canvas_release(self, event: tk.Event) -> None:
+        if self.resize_target is not None:
+            self._finish_resize()
+            return
         if not self.add_mode or self.add_start is None:
             return
 
@@ -252,6 +272,8 @@ class LabelReviewApp:
         return None
 
     def delete_selected_box(self) -> None:
+        if self.resize_target is not None:
+            self._cancel_resize()
         selected = self._selected_indices()
         if not selected:
             messagebox.showinfo("No selection", "Select at least one box to delete.")
@@ -271,6 +293,8 @@ class LabelReviewApp:
             self.add_start = None
             self._clear_preview()
             self.status.configure(text="Add cancelled.")
+        elif self.resize_target is not None:
+            self._cancel_resize()
 
     def save_labels(self) -> None:
         label_path = self._label_path(self.image_paths[self.index])
@@ -284,8 +308,7 @@ class LabelReviewApp:
     def _refresh_listbox(self) -> None:
         self.listbox.delete(0, tk.END)
         for idx, box in enumerate(self.boxes):
-            summary = f"#{idx+1}: x={box.x_center:.2f} y={box.y_center:.2f} w={box.width:.2f} h={box.height:.2f}"
-            self.listbox.insert(tk.END, summary)
+            self.listbox.insert(tk.END, self._format_box_summary(idx, box))
         self._draw_boxes()
 
     def load_current_image(self) -> None:
@@ -294,6 +317,8 @@ class LabelReviewApp:
         self.boxes = self._load_labels(self.current_image)
         self.add_mode = False
         self.add_start = None
+        self.resize_target = None
+        self.resize_start_box = None
         self._clear_preview()
         self._update_title()
         self._render_image(image)
@@ -328,3 +353,159 @@ class LabelReviewApp:
         self.root.title(
             f"Label Review - {self.image_paths[self.index].name} ({self.index + 1}/{len(self.image_paths)}){dirty_mark}"
         )
+
+    def _detect_handle(self) -> tuple[int, str] | None:
+        current = self.canvas.find_withtag("current")
+        if not current:
+            return None
+        tags = self.canvas.gettags(current[0])
+        for tag in tags:
+            if tag.startswith("handle-"):
+                try:
+                    _, idx_str, corner = tag.split("-", 2)
+                    return int(idx_str), corner
+                except ValueError:
+                    return None
+        return None
+
+    def _start_resize(self, idx: int, corner: str) -> None:
+        if idx < 0 or idx >= len(self.boxes):
+            return
+        self.resize_target = (idx, corner)
+        box = self.boxes[idx]
+        self.resize_start_box = LabelBox(
+            class_id=box.class_id,
+            x_center=box.x_center,
+            y_center=box.y_center,
+            width=box.width,
+            height=box.height,
+        )
+        self.status.configure(text=f"Resizing box #{idx + 1}; drag to adjust, release to commit.")
+
+    def _update_resize(self, canvas_x: float, canvas_y: float) -> None:
+        if self.resize_target is None or self.resize_start_box is None:
+            return
+        idx, corner = self.resize_target
+        if idx < 0 or idx >= len(self.boxes):
+            return
+
+        start_box = self.resize_start_box
+        x1_init, y1_init, x2_init, y2_init = self._box_corners_norm(start_box)
+        nx, ny = self._canvas_to_normalized(canvas_x, canvas_y)
+        nx = min(max(nx, 0.0), 1.0)
+        ny = min(max(ny, 0.0), 1.0)
+
+        if corner == "nw":
+            new_x1, new_y1, new_x2, new_y2 = nx, ny, x2_init, y2_init
+        elif corner == "ne":
+            new_x1, new_y1, new_x2, new_y2 = x1_init, ny, nx, y2_init
+        elif corner == "sw":
+            new_x1, new_y1, new_x2, new_y2 = nx, y1_init, x2_init, ny
+        else:  # "se"
+            new_x1, new_y1, new_x2, new_y2 = x1_init, y1_init, nx, ny
+
+        new_x1, new_x2 = sorted((new_x1, new_x2))
+        new_y1, new_y2 = sorted((new_y1, new_y2))
+
+        min_size = MIN_BOX_SIZE_NORM
+        if new_x2 - new_x1 < min_size:
+            if corner in ("nw", "sw"):
+                new_x1 = max(0.0, new_x2 - min_size)
+            else:
+                new_x2 = min(1.0, new_x1 + min_size)
+        if new_y2 - new_y1 < min_size:
+            if corner in ("nw", "ne"):
+                new_y1 = max(0.0, new_y2 - min_size)
+            else:
+                new_y2 = min(1.0, new_y1 + min_size)
+
+        new_x1 = min(max(new_x1, 0.0), 1.0)
+        new_x2 = min(max(new_x2, 0.0), 1.0)
+        new_y1 = min(max(new_y1, 0.0), 1.0)
+        new_y2 = min(max(new_y2, 0.0), 1.0)
+
+        target_box = self.boxes[idx]
+        target_box.x_center = (new_x1 + new_x2) / 2
+        target_box.y_center = (new_y1 + new_y2) / 2
+        target_box.width = new_x2 - new_x1
+        target_box.height = new_y2 - new_y1
+        target_box.clamp()
+
+        self._draw_boxes()
+        self._update_listbox_entry(idx)
+        self.status.configure(
+            text=(
+                f"Resizing box #{idx + 1}: w={target_box.width:.2f} h={target_box.height:.2f}. Release to commit."
+            )
+        )
+
+    def _finish_resize(self) -> None:
+        if self.resize_target is None:
+            return
+        idx, _corner = self.resize_target
+        self._set_dirty(True)
+        self.status.configure(text=f"Resize applied to box #{idx + 1}.")
+        self._clear_resize_state()
+        self._draw_boxes()
+
+    def _cancel_resize(self) -> None:
+        if self.resize_target is None or self.resize_start_box is None:
+            return
+        idx, _ = self.resize_target
+        if 0 <= idx < len(self.boxes):
+            original = self.resize_start_box
+            self.boxes[idx] = LabelBox(
+                class_id=original.class_id,
+                x_center=original.x_center,
+                y_center=original.y_center,
+                width=original.width,
+                height=original.height,
+            )
+            self._update_listbox_entry(idx)
+        self._clear_resize_state()
+        self._draw_boxes()
+        self.status.configure(text="Resize cancelled.")
+
+    def _clear_resize_state(self) -> None:
+        self.resize_target = None
+        self.resize_start_box = None
+
+    def _update_listbox_entry(self, idx: int) -> None:
+        if idx < 0 or idx >= len(self.boxes):
+            return
+        selected = self._selected_indices()
+        summary = self._format_box_summary(idx, self.boxes[idx])
+        self.listbox.delete(idx)
+        self.listbox.insert(idx, summary)
+        for sel in selected:
+            if sel < self.listbox.size():
+                self.listbox.selection_set(sel)
+
+    def _box_corners_norm(self, box: LabelBox) -> tuple[float, float, float, float]:
+        x1 = box.x_center - box.width / 2
+        y1 = box.y_center - box.height / 2
+        x2 = box.x_center + box.width / 2
+        y2 = box.y_center + box.height / 2
+        return x1, y1, x2, y2
+
+    def _format_box_summary(self, idx: int, box: LabelBox) -> str:
+        return f"#{idx+1}: x={box.x_center:.2f} y={box.y_center:.2f} w={box.width:.2f} h={box.height:.2f}"
+
+    def _draw_handles(self, idx: int, x1: float, y1: float, x2: float, y2: float) -> None:
+        half = HANDLE_SIZE / 2
+        corners = {
+            "nw": (x1, y1),
+            "ne": (x2, y1),
+            "sw": (x1, y2),
+            "se": (x2, y2),
+        }
+        for name, (hx, hy) in corners.items():
+            self.canvas.create_rectangle(
+                hx - half,
+                hy - half,
+                hx + half,
+                hy + half,
+                fill=COLOR_BOX_SELECTED,
+                outline="#202020",
+                tags=("handle", f"handle-{idx}-{name}"),
+            )
