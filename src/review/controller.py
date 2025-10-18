@@ -6,7 +6,7 @@ future target for moving logic out of gui_app.LabelReviewApp incrementally.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Protocol, Any
+from typing import Any, List, Protocol, Sequence
 
 from PIL import Image
 
@@ -23,11 +23,13 @@ class View(Protocol):
     def render_image_fit(self, image: Image.Image) -> tuple[int, int]: ...
     def set_status(self, text: str) -> None: ...
     def set_title(self, text: str) -> None: ...
-    def set_list_items(self, items: List[str]) -> None: ...
+    def set_list_items(self, items: Sequence[str]) -> None: ...
     def get_selected_indices(self) -> List[int]: ...
-    def set_selection(self, indices: List[int]) -> None: ...
-    def set_class_names(self, names: List[str]) -> None: ...
-    def set_current_class_id(self, cid: int) -> None: ...
+    def set_selection(self, indices: Sequence[int]) -> None: ...
+    def set_class_names(self, class_names: Sequence[str]) -> None: ...
+    def set_current_class_id(self, class_id: int) -> None: ...
+    def set_directory_display(self, image_dir: Path, label_dir: Path) -> None: ...
+    def prompt_directory(self, title: str, initialdir: Path | None = None) -> Path | None: ...
     def start_preview_rect(self, x: float, y: float) -> None: ...
     def update_preview_rect(self, x0: float, y0: float, x1: float, y1: float) -> None: ...
     def clear_preview_rect(self) -> None: ...
@@ -51,11 +53,10 @@ class LabelReviewController:
         self.resize_target: tuple[int, str] | None = None
         self.resize_start_box: LabelBox | None = None
         # Class handling
-        dataset_root = self._infer_dataset_root()
-        self.class_names: List[str] = read_class_names_from_yaml(dataset_root)
+        self.class_names: List[str] = []
         self.current_class_id: int = 0
-        self.view.set_class_names(self.class_names)
-        self.view.set_current_class_id(self.current_class_id)
+        self._reload_classes()
+        self.view.set_directory_display(self.image_dir, self.label_dir)
 
     def _label_path(self, image_path: Path) -> Path:
         return self.label_dir / f"{image_path.stem}.txt"
@@ -152,6 +153,25 @@ class LabelReviewController:
             label_path.unlink()
         self._set_dirty(False)
         self.view.set_status(f"Saved {label_path.name}.")
+
+    def select_image_dir(self) -> None:
+        new_dir = self.view.prompt_directory("Select image folder", self.image_dir)
+        if new_dir is None:
+            return
+        suggested_labels = self._suggest_label_dir(new_dir)
+        self._switch_to_dataset(new_dir, suggested_labels)
+
+    def select_label_dir(self) -> None:
+        new_dir = self.view.prompt_directory("Select label folder", self.label_dir)
+        if new_dir is None:
+            return
+        if self.dirty:
+            self.save_labels()
+        self.label_dir = new_dir
+        self.view.set_directory_display(self.image_dir, self.label_dir)
+        self._reload_classes()
+        self._set_dirty(False)
+        self.load_current()
 
     # Canvas events
     def on_canvas_press(self, event: tk.Event) -> None:
@@ -368,6 +388,51 @@ class LabelReviewController:
     def _set_dirty(self, value: bool) -> None:
         self.dirty = value
         self._update_title()
+
+    def _reload_classes(self) -> None:
+        dataset_root = self._infer_dataset_root()
+        self.class_names = read_class_names_from_yaml(dataset_root)
+        if not self.class_names:
+            self.class_names = ["class0"]
+        self.view.set_class_names(self.class_names)
+        if not (0 <= self.current_class_id < len(self.class_names)):
+            self.current_class_id = 0
+        self.view.set_current_class_id(self.current_class_id)
+
+    def _switch_to_dataset(self, image_dir: Path, label_dir: Path) -> None:
+        if image_dir == self.image_dir and label_dir == self.label_dir:
+            self.view.set_status("Already using selected folders.")
+            return
+        try:
+            new_images = discover_images(image_dir)
+        except FileNotFoundError:
+            self.view.set_status(f"Image folder missing: {image_dir}")
+            return
+        if not new_images:
+            self.view.set_status(f"No images found in {image_dir}")
+            return
+        if self.dirty:
+            self.save_labels()
+        self.image_dir = image_dir
+        self.label_dir = label_dir
+        self.image_paths = new_images
+        self.index = 0
+        self.boxes = []
+        self.add_mode = False
+        self.add_start = None
+        self._clear_resize_state()
+        self.view.clear_preview_rect()
+        self.view.set_selection([])
+        self._reload_classes()
+        self.view.set_directory_display(self.image_dir, self.label_dir)
+        self._set_dirty(False)
+        self.load_current()
+
+    def _suggest_label_dir(self, image_dir: Path) -> Path:
+        if image_dir.parent.name == "images":
+            dataset_root = image_dir.parent.parent
+            return dataset_root / "labels" / image_dir.name
+        return self.label_dir
 
     # Class helpers and wiring
     def _infer_dataset_root(self) -> Path:

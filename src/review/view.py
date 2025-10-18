@@ -5,10 +5,11 @@ The goal is to keep UI wiring separate from business logic.
 """
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Callable, Iterable, List, Optional, Sequence
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter import filedialog, ttk
 
 from PIL import Image, ImageTk
 
@@ -27,32 +28,50 @@ class LabelReviewView:
         controls = ttk.Frame(self.root)
         controls.grid(row=0, column=1, sticky="ns", padx=12, pady=12)
 
+        dataset_frame = ttk.LabelFrame(controls, text="Folders")
+        dataset_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 8))
+        dataset_frame.columnconfigure(1, weight=1)
+
+        ttk.Label(dataset_frame, text="Images").grid(row=0, column=0, sticky="w", padx=(4, 4), pady=2)
+        self.image_dir_var = tk.StringVar(value="")
+        self.image_dir_entry = ttk.Entry(dataset_frame, textvariable=self.image_dir_var, state="readonly")
+        self.image_dir_entry.grid(row=0, column=1, sticky="ew", padx=(0, 4), pady=2)
+        self.btn_browse_images = ttk.Button(dataset_frame, text="Browse...")
+        self.btn_browse_images.grid(row=0, column=2, sticky="ew", padx=(0, 4), pady=2)
+
+        ttk.Label(dataset_frame, text="Labels").grid(row=1, column=0, sticky="w", padx=(4, 4), pady=2)
+        self.label_dir_var = tk.StringVar(value="")
+        self.label_dir_entry = ttk.Entry(dataset_frame, textvariable=self.label_dir_var, state="readonly")
+        self.label_dir_entry.grid(row=1, column=1, sticky="ew", padx=(0, 4), pady=2)
+        self.btn_browse_labels = ttk.Button(dataset_frame, text="Browse...")
+        self.btn_browse_labels.grid(row=1, column=2, sticky="ew", padx=(0, 4), pady=2)
+
         self.listbox = tk.Listbox(controls, height=20, width=40, selectmode=tk.EXTENDED)
-        self.listbox.grid(row=0, column=0, columnspan=2, sticky="nsew")
+        self.listbox.grid(row=1, column=0, columnspan=2, sticky="nsew")
 
         self.btn_prev = ttk.Button(controls, text="Prev")
         self.btn_next = ttk.Button(controls, text="Next")
-        self.btn_prev.grid(row=1, column=0, pady=4, sticky="ew")
-        self.btn_next.grid(row=1, column=1, pady=4, sticky="ew")
+        self.btn_prev.grid(row=2, column=0, pady=4, sticky="ew")
+        self.btn_next.grid(row=2, column=1, pady=4, sticky="ew")
 
         self.btn_add = ttk.Button(controls, text="Add Box")
         self.btn_del = ttk.Button(controls, text="Delete Selected")
-        self.btn_add.grid(row=2, column=0, pady=4, sticky="ew")
-        self.btn_del.grid(row=2, column=1, pady=4, sticky="ew")
+        self.btn_add.grid(row=3, column=0, pady=4, sticky="ew")
+        self.btn_del.grid(row=3, column=1, pady=4, sticky="ew")
 
         # Class selector
-        ttk.Label(controls, text="Class").grid(row=3, column=0, sticky="w")
+        ttk.Label(controls, text="Class").grid(row=4, column=0, sticky="w")
         self.class_var = tk.StringVar(value="0")
         self.class_combo = ttk.Combobox(controls, textvariable=self.class_var, state="readonly", width=32)
-        self.class_combo.grid(row=3, column=1, sticky="ew")
+        self.class_combo.grid(row=4, column=1, sticky="ew")
 
         self.btn_save = ttk.Button(controls, text="Save")
-        self.btn_save.grid(row=4, column=0, columnspan=2, pady=12, sticky="ew")
+        self.btn_save.grid(row=5, column=0, columnspan=2, pady=12, sticky="ew")
 
         self.status = ttk.Label(controls, text="")
-        self.status.grid(row=5, column=0, columnspan=2, sticky="ew", pady=6)
+        self.status.grid(row=6, column=0, columnspan=2, sticky="ew", pady=6)
 
-        controls.rowconfigure(0, weight=1)
+        controls.rowconfigure(1, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
         self.root.grid_rowconfigure(0, weight=1)
 
@@ -78,6 +97,10 @@ class LabelReviewView:
         self.root.bind("D", lambda _e: on_delete())
         self.root.bind("s", lambda _e: on_save())
         self.root.bind("S", lambda _e: on_save())
+
+    def bind_directory_select(self, on_image: Callable[[], None], on_label: Callable[[], None]) -> None:
+        self.btn_browse_images.configure(command=on_image)
+        self.btn_browse_labels.configure(command=on_label)
 
     def bind_canvas(self, on_press, on_drag, on_release, on_select_list) -> None:
         self.canvas.bind("<ButtonPress-1>", on_press)
@@ -118,6 +141,17 @@ class LabelReviewView:
 
     def set_title(self, text: str) -> None:
         self.root.title(text)
+
+    def set_directory_display(self, image_dir: Path, label_dir: Path) -> None:
+        self.image_dir_var.set(str(image_dir))
+        self.label_dir_var.set(str(label_dir))
+
+    def prompt_directory(self, title: str, initialdir: Path | None = None) -> Path | None:
+        initial = str(initialdir) if initialdir else ""
+        result = filedialog.askdirectory(parent=self.root, title=title, initialdir=initial, mustexist=True)
+        if not result:
+            return None
+        return Path(result)
 
     def set_list_items(self, items: Sequence[str]) -> None:
         self.listbox.delete(0, tk.END)
