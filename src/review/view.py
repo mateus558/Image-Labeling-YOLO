@@ -79,7 +79,8 @@ class LabelReviewView:
         self._preview_rect = None
         self.image_x_offset = 0
         self.image_y_offset = 0
-        self._on_resize_callback = None  # type: Optional[Callable[[], None]]
+        self._crosshair_ids = None
+        self._on_resize_callback = None
         # Re-center image on canvas resize
         self.canvas.bind("<Configure>", self._on_canvas_configure)
 
@@ -107,11 +108,14 @@ class LabelReviewView:
         self.btn_browse_images.configure(command=on_image)
         self.btn_browse_labels.configure(command=on_label)
 
-    def bind_canvas(self, on_press, on_drag, on_release, on_select_list) -> None:
+    def bind_canvas(self, on_press, on_drag, on_release, on_select_list, on_motion=None) -> None:
         self.canvas.bind("<ButtonPress-1>", on_press)
         self.canvas.bind("<B1-Motion>", on_drag)
         self.canvas.bind("<ButtonRelease-1>", on_release)
         self.listbox.bind("<<ListboxSelect>>", on_select_list)
+        if on_motion is not None:
+            self.canvas.bind("<Motion>", on_motion)
+            self.canvas.bind("<Leave>", lambda _e: self.clear_crosshair())
 
     def bind_canvas_resize(self, on_resize: Callable[[], None]) -> None:
         self._on_resize_callback = on_resize
@@ -152,9 +156,57 @@ class LabelReviewView:
         y_off = max(0, (ch - display_size[1]) // 2)
         self.image_x_offset = x_off
         self.image_y_offset = y_off
+        self.clear_crosshair()
         self.canvas.delete("all")
-        self.canvas.create_image(x_off, y_off, anchor="nw", image=self._photo)
+        self.canvas.create_image(x_off, y_off, anchor="nw", image=self._photo, tags=("image",))
         return display_size
+
+    # Crosshair helpers
+    def update_crosshair(self, x: float, y: float) -> None:
+        try:
+            w = int(self.canvas.winfo_width())
+            h = int(self.canvas.winfo_height())
+        except Exception:
+            w, h = CANVAS_MAX_WIDTH, CANVAS_MAX_HEIGHT
+        # Create or update horizontal and vertical lines spanning the canvas
+        ids = getattr(self, "_crosshair_ids", None)
+        color = "#ffd54f"
+        if ids is None:
+            h_id = self.canvas.create_line(
+                0, y, w, y, fill=color, dash=(4, 2), width=1, tags=("crosshair",)
+            )
+            v_id = self.canvas.create_line(
+                x, 0, x, h, fill=color, dash=(4, 2), width=1, tags=("crosshair",)
+            )
+            for item in (h_id, v_id):
+                try:
+                    self.canvas.itemconfigure(item, state=tk.DISABLED)
+                except Exception:
+                    pass
+            self._crosshair_ids = (h_id, v_id)
+        else:
+            h_id, v_id = ids
+            try:
+                self.canvas.coords(h_id, 0, y, w, y)
+                self.canvas.coords(v_id, x, 0, x, h)
+            except Exception:
+                # If items were cleared externally, recreate on next call
+                self._crosshair_ids = None
+                return
+        try:
+            self.canvas.tag_raise("crosshair")
+        except Exception:
+            pass
+
+    def clear_crosshair(self) -> None:
+        ids = getattr(self, "_crosshair_ids", None)
+        if ids is not None:
+            for item in ids:
+                try:
+                    self.canvas.delete(item)
+                except Exception:
+                    pass
+            self._crosshair_ids = None
 
     # Internal: handle canvas resizing to re-center the current image
     def _on_canvas_configure(self, event: tk.Event) -> None:
@@ -167,8 +219,9 @@ class LabelReviewView:
         self.image_x_offset = max(0, (cw - iw) // 2)
         self.image_y_offset = max(0, (ch - ih) // 2)
         # Redraw the image at the new offset; keep existing scale
+        self.clear_crosshair()
         self.canvas.delete("all")
-        self.canvas.create_image(self.image_x_offset, self.image_y_offset, anchor="nw", image=self._photo)
+        self.canvas.create_image(self.image_x_offset, self.image_y_offset, anchor="nw", image=self._photo, tags=("image",))
         # Let controller redraw boxes with new offsets
         if self._on_resize_callback:
             try:

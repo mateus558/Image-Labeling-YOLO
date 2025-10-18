@@ -33,6 +33,8 @@ class View(Protocol):
     def start_preview_rect(self, x: float, y: float) -> None: ...
     def update_preview_rect(self, x0: float, y0: float, x1: float, y1: float) -> None: ...
     def clear_preview_rect(self) -> None: ...
+    def update_crosshair(self, x: float, y: float) -> None: ...
+    def clear_crosshair(self) -> None: ...
 
 
 class LabelReviewController:
@@ -150,7 +152,19 @@ class LabelReviewController:
         self.add_start = None
         self.view.clear_preview_rect()
         self.view.set_selection([])
-        self.view.set_status("Add mode: click and drag to draw the box, release to finish. (Esc to cancel)")
+        self.view.set_status("Add mode: click the first corner, then click the opposite corner. (Esc to cancel)")
+
+    def cancel_add_or_resize(self) -> None:
+        # Cancel any in-progress add/resize interaction
+        if self.add_mode:
+            self.add_mode = False
+            self.add_start = None
+            self.view.clear_preview_rect()
+            self.view.set_status("Add cancelled.")
+            return
+        if self.resize_target is not None:
+            self._cancel_resize()
+            return
 
     def delete_selected_box(self) -> None:
         if self.resize_target is not None:
@@ -202,10 +216,20 @@ class LabelReviewController:
     # Canvas events
     def on_canvas_press(self, event: tk.Event) -> None:
         if self.add_mode:
+            if self.add_start is None:
+                self.add_start = (event.x, event.y)
+                self.view.clear_preview_rect()
+                self.view.start_preview_rect(event.x, event.y)
+                self.view.set_status("First corner set. Click another point to finish.")
+                return
+            # Second click finishes the box (two-click workflow)
+            if self._commit_add_box(event.x, event.y):
+                return
+            # If commit failed (box too small), treat this click as a new start
             self.add_start = (event.x, event.y)
             self.view.clear_preview_rect()
             self.view.start_preview_rect(event.x, event.y)
-            self.view.set_status("Drag to size the box, release to confirm.")
+            self.view.set_status("First corner set. Click another point to finish.")
             return
         handle = canvas_utils.detect_handle(self.view.canvas)
         if handle is not None:
@@ -236,6 +260,10 @@ class LabelReviewController:
             else:
                 self.view.set_selection([idx])
             self.draw_boxes()
+        else:
+            # Clicked empty canvas while not in add mode; remind user how to draw
+            if self.image_paths:
+                self.view.set_status("Press Add Box or hit A before drawing a new box.")
 
     def on_canvas_drag(self, event: tk.Event) -> None:
         if self.resize_target is not None:
@@ -249,41 +277,27 @@ class LabelReviewController:
         if self.resize_target is not None:
             self._finish_resize()
             return
-        if not self.add_mode or self.add_start is None:
+        if self.add_mode:
             return
-        start_x, start_y = self.add_start
-        end_x, end_y = event.x, event.y
-        self.add_start = None
-        self.view.clear_preview_rect()
-        start_norm = self._canvas_to_normalized(start_x, start_y)
-        end_norm = self._canvas_to_normalized(end_x, end_y)
-        x0n = min(max(start_norm[0], 0.0), 1.0)
-        y0n = min(max(start_norm[1], 0.0), 1.0)
-        x1n = min(max(end_norm[0], 0.0), 1.0)
-        y1n = min(max(end_norm[1], 0.0), 1.0)
-        width = abs(x1n - x0n)
-        height = abs(y1n - y0n)
-        if width < MIN_BOX_SIZE_NORM or height < MIN_BOX_SIZE_NORM:
-            self.view.set_status("Add mode cancelled; box too small.")
+        if self.add_start is None:
             return
-        x_center = (x0n + x1n) / 2
-        y_center = (y0n + y1n) / 2
-        new_box = LabelBox(
-            class_id=self.current_class_id,
-            x_center=x_center,
-            y_center=y_center,
-            width=width,
-            height=height,
-        ).clamp()
-        self.boxes.append(new_box)
-        self._refresh_list()
-        self.add_mode = False
-        self._set_dirty(True)
-        self.view.set_status("Box added. Click Add Box to draw another.")
+        self._commit_add_box(event.x, event.y)
+
+    def on_canvas_motion(self, event: tk.Event) -> None:
+        # Update crosshair lines to follow cursor
+        try:
+            self.view.update_crosshair(event.x, event.y)
+        except Exception:
+            pass
+        if self.add_mode and self.add_start is not None:
+            self.view.update_preview_rect(self.add_start[0], self.add_start[1], event.x, event.y)
 
     # Geometry/select helpers
     def _canvas_to_normalized(self, x: float, y: float) -> tuple[float, float]:
-        return x / max(1, self.display_width), y / max(1, self.display_height)
+        # Adjust for centering offsets if present
+        x_adj = x - getattr(self.view, "image_x_offset", 0)
+        y_adj = y - getattr(self.view, "image_y_offset", 0)
+        return x_adj / max(1, self.display_width), y_adj / max(1, self.display_height)
 
     def _find_box_at(self, x: float, y: float) -> int | None:
         for idx, box in enumerate(self.boxes):
@@ -297,6 +311,40 @@ class LabelReviewController:
             if x1 <= x <= x2 and y1 <= y <= y2:
                 return idx
         return None
+
+    def _commit_add_box(self, end_x: float, end_y: float) -> bool:
+        if self.add_start is None:
+            return False
+        start_x, start_y = self.add_start
+        self.view.clear_preview_rect()
+        start_norm = self._canvas_to_normalized(start_x, start_y)
+        end_norm = self._canvas_to_normalized(end_x, end_y)
+        x0n = min(max(start_norm[0], 0.0), 1.0)
+        y0n = min(max(start_norm[1], 0.0), 1.0)
+        x1n = min(max(end_norm[0], 0.0), 1.0)
+        y1n = min(max(end_norm[1], 0.0), 1.0)
+        width = abs(x1n - x0n)
+        height = abs(y1n - y0n)
+        if width < MIN_BOX_SIZE_NORM or height < MIN_BOX_SIZE_NORM:
+            self.view.set_status("Box too small; pick points farther apart.")
+            self.add_start = None
+            return False
+        x_center = (x0n + x1n) / 2
+        y_center = (y0n + y1n) / 2
+        new_box = LabelBox(
+            class_id=self.current_class_id,
+            x_center=x_center,
+            y_center=y_center,
+            width=width,
+            height=height,
+        ).clamp()
+        self.boxes.append(new_box)
+        self._refresh_list()
+        self.add_mode = False
+        self.add_start = None
+        self._set_dirty(True)
+        self.view.set_status("Box added. Click Add Box to draw another.")
+        return True
 
     # Resize workflow
     def _start_resize(self, idx: int, corner: str) -> None:

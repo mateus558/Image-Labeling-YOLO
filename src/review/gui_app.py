@@ -50,13 +50,17 @@ class LabelReviewApp:
         self.view.bind_navigation(self.controller.prev_image, self.controller.next_image)
         self.view.bind_editing(self.controller.start_add_box, self.controller.delete_selected_box, self.controller.save_labels)
         self.view.bind_canvas(
-            self.controller.on_canvas_press, self.controller.on_canvas_drag, self.controller.on_canvas_release, self.controller.on_select_list
+            self.controller.on_canvas_press,
+            self.controller.on_canvas_drag,
+            self.controller.on_canvas_release,
+            self.controller.on_select_list,
+            on_motion=self.controller.on_canvas_motion,
         )
         # Redraw boxes on canvas resize to follow centering offsets
         self.view.bind_canvas_resize(self.controller.draw_boxes)
         self.view.bind_class_change(self.controller.on_class_change)
         self.view.bind_directory_select(self.controller.select_image_dir, self.controller.select_label_dir)
-        self.root.bind("<Escape>", lambda _event: self._cancel_add_mode())
+        self.root.bind("<Escape>", lambda _event: self.controller.cancel_add_or_resize())
         # Quick class hotkeys: number keys 0-9 set current class or apply to selection
         for k in list("0123456789"):
             self.root.bind(k, self._on_digit_class)
