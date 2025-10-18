@@ -4,4 +4,3 @@ names:
   - teste
 train: /home/mateuscmarim/Projects/image_labeling/yolo_dataset/splits/train.txt
 val: /home/mateuscmarim/Projects/image_labeling/yolo_dataset/splits/val.txt
-path: /home/mateuscmarim/Projects/image_labeling/yolo_dataset/images/train
