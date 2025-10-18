@@ -65,13 +65,22 @@ pip install -r requirements.txt
 
 4. **Review & correct** (optional but recommended)
 
+   Install in editable mode (recommended for CLI):
+
    ```bash
-   python src/review_gui.py
+   pip install -e .
    ```
 
-   - Arrow keys navigate images; **Add Box** lets you draw new boxes with two clicks.
-   - **Delete Selected** removes highlighted boxes.
-   - **Save** writes the corresponding YOLO label file.
+   Launch the GUI:
+
+   ```bash
+   label-review  # or: python src/review_gui.py
+   ```
+
+   - Arrow keys or N/P to navigate.
+   - Add Box to draw; drag handles to resize.
+   - Class dropdown or 0–9 keys to set/apply class labels.
+   - Delete Selected removes highlighted boxes; Save writes YOLO files.
 
 5. **Train YOLOv8**
      - Use the provided helper script to auto-split, write `data.yaml`, and launch Ultralytics training:
@@ -104,3 +113,14 @@ pip install -r requirements.txt
 - The default Grounding DINO checkpoint downloads automatically to `~/.cache/groundingdino/`; override with `--checkpoint-path` if you maintain your own weights.
 - Re-run `json_to_yolo.py` whenever you tweak JSON thresholds; it overwrites labels and re-copies images when `--overwrite` is provided.
 - Visualizations under `outputs/viz` are great for batch QA or for sharing quick progress snapshots with stakeholders.
+
+## Development
+
+- Install dev extras and run tests:
+
+```bash
+pip install -e .[dev]
+pytest -q
+```
+
+CI runs basic tests on GitHub Actions for pull requests.
