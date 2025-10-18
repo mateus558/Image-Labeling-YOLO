@@ -51,6 +51,25 @@ def draw_handles(canvas, idx: int, x1: float, y1: float, x2: float, y2: float) -
             outline="#202020",
             tags=("handle", f"handle-{idx}-{name}"),
         )
+    # Edge handles for horizontal / vertical resize
+    mid_x = (x1 + x2) / 2
+    mid_y = (y1 + y2) / 2
+    edges = {
+        "n": (mid_x, y1),
+        "s": (mid_x, y2),
+        "w": (x1, mid_y),
+        "e": (x2, mid_y),
+    }
+    for name, (hx, hy) in edges.items():
+        canvas.create_rectangle(
+            hx - half,
+            hy - half,
+            hx + half,
+            hy + half,
+            fill=COLOR_BOX_SELECTED,
+            outline="#202020",
+            tags=("handle", f"handle-{idx}-{name}"),
+        )
 
 
 def draw_boxes(

@@ -26,6 +26,8 @@ class View(Protocol):
     def set_list_items(self, items: List[str]) -> None: ...
     def get_selected_indices(self) -> List[int]: ...
     def set_selection(self, indices: List[int]) -> None: ...
+    def set_class_names(self, names: List[str]) -> None: ...
+    def set_current_class_id(self, cid: int) -> None: ...
     def start_preview_rect(self, x: float, y: float) -> None: ...
     def update_preview_rect(self, x0: float, y0: float, x1: float, y1: float) -> None: ...
     def clear_preview_rect(self) -> None: ...
@@ -270,14 +272,30 @@ class LabelReviewController:
         nx, ny = self._canvas_to_normalized(canvas_x, canvas_y)
         nx = min(max(nx, 0.0), 1.0)
         ny = min(max(ny, 0.0), 1.0)
+        # Corner handles
         if corner == "nw":
             new_x1, new_y1, new_x2, new_y2 = nx, ny, x2_init, y2_init
         elif corner == "ne":
             new_x1, new_y1, new_x2, new_y2 = x1_init, ny, nx, y2_init
         elif corner == "sw":
             new_x1, new_y1, new_x2, new_y2 = nx, y1_init, x2_init, ny
-        else:  # "se"
+        elif corner == "se":
             new_x1, new_y1, new_x2, new_y2 = x1_init, y1_init, nx, ny
+        # Edge handles: north/south adjust only y; west/east adjust only x
+        elif corner == "n":
+            new_x1, new_x2 = x1_init, x2_init
+            new_y1, new_y2 = ny, y2_init
+        elif corner == "s":
+            new_x1, new_x2 = x1_init, x2_init
+            new_y1, new_y2 = y1_init, ny
+        elif corner == "w":
+            new_x1, new_x2 = nx, x2_init
+            new_y1, new_y2 = y1_init, y2_init
+        elif corner == "e":
+            new_x1, new_x2 = x1_init, nx
+            new_y1, new_y2 = y1_init, y2_init
+        else:
+            return
         new_x1, new_x2 = sorted((new_x1, new_x2))
         new_y1, new_y2 = sorted((new_y1, new_y2))
         min_size = MIN_BOX_SIZE_NORM
