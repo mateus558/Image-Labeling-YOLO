@@ -5,29 +5,18 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "image-labeling-tools"
 version = "0.1.0"
-description = "Tools to bootstrap, review, and train YOLO labels (Grounding DINO + Tkinter GUI)."
+description = "Tkinter GUI for reviewing and editing YOLO labels."
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [{name = "Your Name"}]
 dependencies = [
-  "numpy",
   "pillow",
 ]
 
 [project.optional-dependencies]
 dev = [
   "pytest>=7",
-]
-train = [
-  "ultralytics>=8.2",
-  "opencv-python",
-  "tqdm",
-]
-gdino = [
-  "groundingdino-py",
-  "torch",
-  "torchvision",
 ]
 
 [project.urls]
@@ -40,10 +29,7 @@ label-review = "review_gui:main"
 [tool.setuptools]
 package-dir = {"" = "src"}
 py-modules = [
-  "bootstrap_gdino",
-  "json_to_yolo",
   "review_gui",
-  "train_yolo",
 ]
 
 [tool.setuptools.packages.find]

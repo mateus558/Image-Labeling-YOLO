@@ -22,7 +22,7 @@ pytest -q
 
 Local Usage
 -----------
-- Prepare a dataset under `yolo_dataset/images/train` and `yolo_dataset/labels/train`.
+- Prepare a dataset under `yolo_dataset/images/` and `yolo_dataset/labels/` (matching subfolders if you use them).
 - Run the review GUI:
 
 ```
