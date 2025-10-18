@@ -1,0 +1,9 @@
+groundingdino-py
+ultralytics>=8.2
+opencv-python
+numpy
+pillow
+matplotlib
+tqdm
+torch
+torchvision

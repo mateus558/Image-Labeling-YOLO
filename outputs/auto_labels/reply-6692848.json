@@ -1,0 +1,123 @@
+{
+  "image_path": "/home/mateuscmarim/Projects/image_labeling/seed_images/pos/reply-6692848.jpg",
+  "image_name": "reply-6692848.jpg",
+  "image_size": {
+    "width": 3072,
+    "height": 4080
+  },
+  "prompt": "exercise machine display, treadmill console, rowing machine monitor, bike computer, elliptical console",
+  "box_threshold": 0.25,
+  "text_threshold": 0.25,
+  "detections": [
+    {
+      "bbox": [
+        0.5287420153617859,
+        0.41857239603996277,
+        0.5853276252746582,
+        0.6583213210105896
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.6101575493812561,
+      "phrase": "exercise machine display"
+    },
+    {
+      "bbox": [
+        0.4521803855895996,
+        0.37831494212150574,
+        0.24948331713676453,
+        0.38432344794273376
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5752063989639282,
+      "phrase": "exercise machine display"
+    },
+    {
+      "bbox": [
+        0.5284891128540039,
+        0.41892173886299133,
+        0.5846685767173767,
+        0.6586337089538574
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.594783365726471,
+      "phrase": "treadmill console"
+    },
+    {
+      "bbox": [
+        0.5286751389503479,
+        0.4190349280834198,
+        0.5853277444839478,
+        0.6588883399963379
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5878757238388062,
+      "phrase": "elliptical console"
+    },
+    {
+      "bbox": [
+        0.4523497521877289,
+        0.37825050950050354,
+        0.24985530972480774,
+        0.3848166763782501
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5659379363059998,
+      "phrase": "treadmill console"
+    },
+    {
+      "bbox": [
+        0.5286381244659424,
+        0.419042706489563,
+        0.5852998495101929,
+        0.6587674617767334
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5962127447128296,
+      "phrase": "machine monitor"
+    },
+    {
+      "bbox": [
+        0.4522985816001892,
+        0.3785860538482666,
+        0.2498650699853897,
+        0.38470402359962463
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5769131183624268,
+      "phrase": "machine monitor"
+    },
+    {
+      "bbox": [
+        0.5289145708084106,
+        0.4189092814922333,
+        0.5859923362731934,
+        0.6584421396255493
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5751853585243225,
+      "phrase": "bike computer"
+    },
+    {
+      "bbox": [
+        0.5289264917373657,
+        0.4189353883266449,
+        0.5855037569999695,
+        0.6582072377204895
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5663684606552124,
+      "phrase": "exercise machine"
+    },
+    {
+      "bbox": [
+        0.5205481648445129,
+        0.5415782928466797,
+        0.6115508675575256,
+        0.910589873790741
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5757180452346802,
+      "phrase": "elliptical console"
+    }
+  ]
+}

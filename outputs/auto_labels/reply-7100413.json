@@ -1,0 +1,68 @@
+{
+  "image_path": "/home/mateuscmarim/Projects/image_labeling/seed_images/pos/reply-7100413.jpg",
+  "image_name": "reply-7100413.jpg",
+  "image_size": {
+    "width": 3024,
+    "height": 4032
+  },
+  "prompt": "exercise machine display, treadmill console, rowing machine monitor, bike computer, elliptical console",
+  "box_threshold": 0.25,
+  "text_threshold": 0.25,
+  "detections": [
+    {
+      "bbox": [
+        0.4179862439632416,
+        0.32149288058280945,
+        0.6020677089691162,
+        0.46056365966796875
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.6124804615974426,
+      "phrase": "machine monitor"
+    },
+    {
+      "bbox": [
+        0.38793447613716125,
+        0.3066547214984894,
+        0.3944878876209259,
+        0.2920059859752655
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5642863512039185,
+      "phrase": "machine display"
+    },
+    {
+      "bbox": [
+        0.6392220258712769,
+        0.7179673314094543,
+        0.7171894907951355,
+        0.5600647330284119
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5670447945594788,
+      "phrase": "bike elliptical console"
+    },
+    {
+      "bbox": [
+        0.555756688117981,
+        0.5436197519302368,
+        0.8815743327140808,
+        0.9073742032051086
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5778276920318604,
+      "phrase": "exercise machine display bike computer elliptical console"
+    },
+    {
+      "bbox": [
+        0.4181085228919983,
+        0.3209860324859619,
+        0.6038960218429565,
+        0.46049490571022034
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5836696624755859,
+      "phrase": "exercise machine display"
+    }
+  ]
+}

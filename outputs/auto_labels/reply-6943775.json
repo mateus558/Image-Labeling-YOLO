@@ -1,0 +1,101 @@
+{
+  "image_path": "/home/mateuscmarim/Projects/image_labeling/seed_images/pos/reply-6943775.jpg",
+  "image_name": "reply-6943775.jpg",
+  "image_size": {
+    "width": 3024,
+    "height": 4032
+  },
+  "prompt": "exercise machine display, treadmill console, rowing machine monitor, bike computer, elliptical console",
+  "box_threshold": 0.25,
+  "text_threshold": 0.25,
+  "detections": [
+    {
+      "bbox": [
+        0.3649485409259796,
+        0.4348447918891907,
+        0.49945616722106934,
+        0.7026141881942749
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.6046600341796875,
+      "phrase": "exercise machine display"
+    },
+    {
+      "bbox": [
+        0.3651060461997986,
+        0.43517449498176575,
+        0.49881353974342346,
+        0.7035792469978333
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5992712378501892,
+      "phrase": "treadmill console"
+    },
+    {
+      "bbox": [
+        0.5014622807502747,
+        0.5000925064086914,
+        0.9785115122795105,
+        0.9928295016288757
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5737775564193726,
+      "phrase": "exercise machine display"
+    },
+    {
+      "bbox": [
+        0.5003272294998169,
+        0.5004284381866455,
+        0.9806170463562012,
+        0.9934203028678894
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.6108100414276123,
+      "phrase": "elliptical console"
+    },
+    {
+      "bbox": [
+        0.3656224310398102,
+        0.43426164984703064,
+        0.49876484274864197,
+        0.7016478776931763
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.6006423830986023,
+      "phrase": "machine monitor"
+    },
+    {
+      "bbox": [
+        0.5007400512695312,
+        0.5002601146697998,
+        0.9820966720581055,
+        0.9930423498153687
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.6070173978805542,
+      "phrase": "bike computer"
+    },
+    {
+      "bbox": [
+        0.5003041625022888,
+        0.500407338142395,
+        0.9810490608215332,
+        0.9922963976860046
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5709460973739624,
+      "phrase": "bike computer"
+    },
+    {
+      "bbox": [
+        0.3653096854686737,
+        0.4342862069606781,
+        0.4988754689693451,
+        0.7008779048919678
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5663968920707703,
+      "phrase": "exercise machine"
+    }
+  ]
+}

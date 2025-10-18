@@ -1,0 +1,90 @@
+{
+  "image_path": "/home/mateuscmarim/Projects/image_labeling/seed_images/pos/reply-6949718.jpg",
+  "image_name": "reply-6949718.jpg",
+  "image_size": {
+    "width": 4284,
+    "height": 5712
+  },
+  "prompt": "exercise machine display, treadmill console, rowing machine monitor, bike computer, elliptical console",
+  "box_threshold": 0.25,
+  "text_threshold": 0.25,
+  "detections": [
+    {
+      "bbox": [
+        0.4540840983390808,
+        0.4595034718513489,
+        0.6255056262016296,
+        0.7004707455635071
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.6163610219955444,
+      "phrase": "exercise machine display"
+    },
+    {
+      "bbox": [
+        0.4537678360939026,
+        0.460196852684021,
+        0.6248685717582703,
+        0.7009819746017456
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5946312546730042,
+      "phrase": "treadmill console"
+    },
+    {
+      "bbox": [
+        0.39017751812934875,
+        0.4004025459289551,
+        0.2927718162536621,
+        0.4431770145893097
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5854405760765076,
+      "phrase": "exercise machine display"
+    },
+    {
+      "bbox": [
+        0.39024361968040466,
+        0.4004706144332886,
+        0.2931123673915863,
+        0.44403573870658875
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5723132491111755,
+      "phrase": "treadmill console"
+    },
+    {
+      "bbox": [
+        0.4990038573741913,
+        0.5005031228065491,
+        0.9867541193962097,
+        0.9919695258140564
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5799538493156433,
+      "phrase": "bike computer"
+    },
+    {
+      "bbox": [
+        0.4542147219181061,
+        0.4594617486000061,
+        0.6256271004676819,
+        0.7013781666755676
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.6166590452194214,
+      "phrase": "machine monitor"
+    },
+    {
+      "bbox": [
+        0.4983864724636078,
+        0.5005887746810913,
+        0.983737587928772,
+        0.9902970194816589
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5779258608818054,
+      "phrase": "elliptical console"
+    }
+  ]
+}

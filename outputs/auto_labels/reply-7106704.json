@@ -1,0 +1,90 @@
+{
+  "image_path": "/home/mateuscmarim/Projects/image_labeling/seed_images/pos/reply-7106704.jpg",
+  "image_name": "reply-7106704.jpg",
+  "image_size": {
+    "width": 3024,
+    "height": 4032
+  },
+  "prompt": "exercise machine display, treadmill console, rowing machine monitor, bike computer, elliptical console",
+  "box_threshold": 0.25,
+  "text_threshold": 0.25,
+  "detections": [
+    {
+      "bbox": [
+        0.49529317021369934,
+        0.5823995471000671,
+        0.9764614105224609,
+        0.8288775682449341
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5802268981933594,
+      "phrase": "exercise machine display"
+    },
+    {
+      "bbox": [
+        0.4998229146003723,
+        0.6330381035804749,
+        0.5128631591796875,
+        0.7277853488922119
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5940226316452026,
+      "phrase": "exercise machine display"
+    },
+    {
+      "bbox": [
+        0.49946537613868713,
+        0.6332927942276001,
+        0.511047899723053,
+        0.7280141711235046
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.589952826499939,
+      "phrase": "treadmill console"
+    },
+    {
+      "bbox": [
+        0.49303674697875977,
+        0.5835790634155273,
+        0.9732840657234192,
+        0.8285571932792664
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5640815496444702,
+      "phrase": "treadmill"
+    },
+    {
+      "bbox": [
+        0.4936597943305969,
+        0.5826619863510132,
+        0.9742698073387146,
+        0.8303623199462891
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.6051783561706543,
+      "phrase": "elliptical console"
+    },
+    {
+      "bbox": [
+        0.4985428750514984,
+        0.5813007354736328,
+        0.9848047494888306,
+        0.8324773907661438
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5941669940948486,
+      "phrase": "bike computer"
+    },
+    {
+      "bbox": [
+        0.49990585446357727,
+        0.6334295868873596,
+        0.5128976106643677,
+        0.7280033826828003
+      ],
+      "bbox_mode": "xyxy_rel",
+      "score": 0.5705960988998413,
+      "phrase": "machine monitor"
+    }
+  ]
+}
