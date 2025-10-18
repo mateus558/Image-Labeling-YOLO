@@ -11,17 +11,16 @@ from PIL import Image, ImageTk
 
 from .io import discover_images, read_yolo_labels, write_yolo_labels
 from .models import LabelBox
-
-# UI constants
-CANVAS_MAX_WIDTH = 960
-CANVAS_MAX_HEIGHT = 720
-COLOR_BOX = "#40c9ff"
-COLOR_BOX_SELECTED = "#ffcc00"
-COLOR_PREVIEW = "#ffcc00"
-BOX_LINE_WIDTH = 2
-PREVIEW_DASH = (4, 2)
-MIN_BOX_SIZE_NORM = 1e-3
-HANDLE_SIZE = 8
+from .constants import (
+    CANVAS_MAX_WIDTH,
+    CANVAS_MAX_HEIGHT,
+    COLOR_PREVIEW,
+    BOX_LINE_WIDTH,
+    PREVIEW_DASH,
+    MIN_BOX_SIZE_NORM,
+)
+from . import canvas_utils
+from .view import LabelReviewView
 
 
 class LabelReviewApp:
@@ -40,62 +39,23 @@ class LabelReviewApp:
         self.resize_target = None
         self.resize_start_box = None
 
-        self.root = tk.Tk()
-        self.root.title("Label Review")
-        self.root.geometry("1200x800")
+        # Build view and wire callbacks
+        self.view = LabelReviewView()
+        self.root = self.view.root
+        self.canvas = self.view.canvas
+        self.listbox = self.view.listbox
+        self.status = self.view.status
 
-        self.canvas = tk.Canvas(self.root, width=CANVAS_MAX_WIDTH, height=CANVAS_MAX_HEIGHT, background="#202020")
-        self.canvas.grid(row=0, column=0, rowspan=6, sticky="nsew", padx=8, pady=8)
-        self.canvas.bind("<ButtonPress-1>", self._on_canvas_press)
-        self.canvas.bind("<B1-Motion>", self._on_canvas_drag)
-        self.canvas.bind("<ButtonRelease-1>", self._on_canvas_release)
-
-        controls = ttk.Frame(self.root)
-        controls.grid(row=0, column=1, sticky="ns", padx=12, pady=12)
-
-        self.listbox = tk.Listbox(controls, height=20, width=40, selectmode=tk.EXTENDED)
-        self.listbox.grid(row=0, column=0, columnspan=2, sticky="nsew")
-        self.listbox.bind("<<ListboxSelect>>", self._on_select_box)
-
-        btn_prev = ttk.Button(controls, text="Prev", command=self.prev_image)
-        btn_next = ttk.Button(controls, text="Next", command=self.next_image)
-        btn_prev.grid(row=1, column=0, pady=4, sticky="ew")
-        btn_next.grid(row=1, column=1, pady=4, sticky="ew")
-
-        btn_add = ttk.Button(controls, text="Add Box", command=self.start_add_box)
-        btn_del = ttk.Button(controls, text="Delete Selected", command=self.delete_selected_box)
-        btn_add.grid(row=2, column=0, pady=4, sticky="ew")
-        btn_del.grid(row=2, column=1, pady=4, sticky="ew")
-
-        btn_save = ttk.Button(controls, text="Save", command=self.save_labels)
-        btn_save.grid(row=3, column=0, columnspan=2, pady=12, sticky="ew")
-
-        self.status = ttk.Label(controls, text="Click Add Box, then click and drag on the image.")
-        self.status.grid(row=4, column=0, columnspan=2, sticky="ew", pady=6)
-
-        controls.rowconfigure(0, weight=1)
-        controls.columnconfigure(0, weight=1)
-        controls.columnconfigure(1, weight=1)
-
-        self.root.grid_columnconfigure(0, weight=1)
-        self.root.grid_rowconfigure(0, weight=1)
-
-        self.root.bind("<Left>", lambda _event: self.prev_image())
-        self.root.bind("<Right>", lambda _event: self.next_image())
+        self.view.bind_navigation(self.prev_image, self.next_image)
+        self.view.bind_editing(self.start_add_box, self.delete_selected_box, self.save_labels)
+        self.view.bind_canvas(
+            self._on_canvas_press, self._on_canvas_drag, self._on_canvas_release, self._on_select_box
+        )
         self.root.bind("<Escape>", lambda _event: self._cancel_add_mode())
-        # Extra keybindings
-        self.root.bind("a", lambda _event: self.start_add_box())
-        self.root.bind("A", lambda _event: self.start_add_box())
-        self.root.bind("d", lambda _event: self.delete_selected_box())
-        self.root.bind("D", lambda _event: self.delete_selected_box())
-        self.root.bind("s", lambda _event: self.save_labels())
-        self.root.bind("S", lambda _event: self.save_labels())
         self.root.bind("n", lambda _event: self.next_image())
         self.root.bind("N", lambda _event: self.next_image())
         self.root.bind("p", lambda _event: self.prev_image())
         self.root.bind("P", lambda _event: self.prev_image())
-        self.root.bind("<Return>", lambda _event: self.next_image())
-        self.root.bind("<BackSpace>", lambda _event: self.prev_image())
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self._photo = None
@@ -132,29 +92,16 @@ class LabelReviewApp:
         self._draw_boxes()
 
     def _draw_boxes(self) -> None:
-        self.canvas.delete("box")
-        self.canvas.delete("handle")
-        selected = set(self._selected_indices())
-        for idx, box in enumerate(self.boxes):
-            x1, y1, x2, y2 = self._normalized_to_canvas(box)
-            color = COLOR_BOX_SELECTED if idx in selected else COLOR_BOX
-            self.canvas.create_rectangle(
-                x1, y1, x2, y2, outline=color, width=BOX_LINE_WIDTH, tags=("box", f"box-{idx}")
-            )
-            if idx in selected:
-                self._draw_handles(idx, x1, y1, x2, y2)
-        self.canvas.tag_raise("handle")
+        canvas_utils.draw_boxes(
+            self.canvas,
+            self.boxes,
+            self._selected_indices(),
+            self.display_width,
+            self.display_height,
+        )
 
     def _normalized_to_canvas(self, box: LabelBox) -> tuple[float, float, float, float]:
-        w = box.width * self.display_width
-        h = box.height * self.display_height
-        x_center = box.x_center * self.display_width
-        y_center = box.y_center * self.display_height
-        x1 = x_center - w / 2
-        y1 = y_center - h / 2
-        x2 = x_center + w / 2
-        y2 = y_center + h / 2
-        return x1, y1, x2, y2
+        return canvas_utils.normalized_to_canvas(box, self.display_width, self.display_height)
 
     def _canvas_to_normalized(self, x: float, y: float) -> tuple[float, float]:
         return x / max(1, self.display_width), y / max(1, self.display_height)
@@ -323,9 +270,7 @@ class LabelReviewApp:
         self._update_title()
         self._render_image(image)
         self._refresh_listbox()
-        self.status.configure(
-            text="Use arrow keys or N/P to navigate. A to add, D to delete, S to save. Esc cancels add mode."
-        )
+        self.status.configure(text="Use arrow keys or N/P to navigate. A to add, D to delete, S to save. Esc cancels add mode.")
 
     def prev_image(self) -> None:
         self.save_labels()
@@ -482,30 +427,10 @@ class LabelReviewApp:
                 self.listbox.selection_set(sel)
 
     def _box_corners_norm(self, box: LabelBox) -> tuple[float, float, float, float]:
-        x1 = box.x_center - box.width / 2
-        y1 = box.y_center - box.height / 2
-        x2 = box.x_center + box.width / 2
-        y2 = box.y_center + box.height / 2
-        return x1, y1, x2, y2
+        return canvas_utils.box_corners_norm(box)
 
     def _format_box_summary(self, idx: int, box: LabelBox) -> str:
         return f"#{idx+1}: x={box.x_center:.2f} y={box.y_center:.2f} w={box.width:.2f} h={box.height:.2f}"
 
     def _draw_handles(self, idx: int, x1: float, y1: float, x2: float, y2: float) -> None:
-        half = HANDLE_SIZE / 2
-        corners = {
-            "nw": (x1, y1),
-            "ne": (x2, y1),
-            "sw": (x1, y2),
-            "se": (x2, y2),
-        }
-        for name, (hx, hy) in corners.items():
-            self.canvas.create_rectangle(
-                hx - half,
-                hy - half,
-                hx + half,
-                hy + half,
-                fill=COLOR_BOX_SELECTED,
-                outline="#202020",
-                tags=("handle", f"handle-{idx}-{name}"),
-            )
+        canvas_utils.draw_handles(self.canvas, idx, x1, y1, x2, y2)
