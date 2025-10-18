@@ -107,6 +107,8 @@ class LabelReviewController:
             self.display_width,
             self.display_height,
             self.class_names,
+            getattr(self.view, "image_x_offset", 0),
+            getattr(self.view, "image_y_offset", 0),
         )
 
     # Formatting
@@ -285,7 +287,13 @@ class LabelReviewController:
 
     def _find_box_at(self, x: float, y: float) -> int | None:
         for idx, box in enumerate(self.boxes):
-            x1, y1, x2, y2 = canvas_utils.normalized_to_canvas(box, self.display_width, self.display_height)
+            x1, y1, x2, y2 = canvas_utils.normalized_to_canvas(
+                box,
+                self.display_width,
+                self.display_height,
+                getattr(self.view, "image_x_offset", 0),
+                getattr(self.view, "image_y_offset", 0),
+            )
             if x1 <= x <= x2 and y1 <= y <= y2:
                 return idx
         return None

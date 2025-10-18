@@ -19,7 +19,7 @@ from .models import LabelBox
 
 
 def normalized_to_canvas(
-    box: LabelBox, display_width: int, display_height: int
+    box: LabelBox, display_width: int, display_height: int, x_offset: int = 0, y_offset: int = 0
 ) -> Tuple[float, float, float, float]:
     """Convert a normalized box to canvas-space rectangle corners (x1, y1, x2, y2)."""
     w = box.width * display_width
@@ -30,7 +30,7 @@ def normalized_to_canvas(
     y1 = y_center - h / 2
     x2 = x_center + w / 2
     y2 = y_center + h / 2
-    return x1, y1, x2, y2
+    return x1 + x_offset, y1 + y_offset, x2 + x_offset, y2 + y_offset
 
 
 def draw_handles(canvas, idx: int, x1: float, y1: float, x2: float, y2: float) -> None:
@@ -79,13 +79,15 @@ def draw_boxes(
     display_width: int,
     display_height: int,
     class_names: Sequence[str] | None = None,
+    x_offset: int = 0,
+    y_offset: int = 0,
 ) -> None:
     selected = set(int(i) for i in selected_indices)
     canvas.delete("box")
     canvas.delete("handle")
     canvas.delete("label")
     for idx, box in enumerate(boxes):
-        x1, y1, x2, y2 = normalized_to_canvas(box, display_width, display_height)
+        x1, y1, x2, y2 = normalized_to_canvas(box, display_width, display_height, x_offset, y_offset)
         color = COLOR_BOX_SELECTED if idx in selected else COLOR_BOX
         canvas.create_rectangle(
             x1, y1, x2, y2, outline=color, width=BOX_LINE_WIDTH, tags=("box", f"box-{idx}")

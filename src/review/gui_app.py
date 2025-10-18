@@ -52,6 +52,8 @@ class LabelReviewApp:
         self.view.bind_canvas(
             self.controller.on_canvas_press, self.controller.on_canvas_drag, self.controller.on_canvas_release, self.controller.on_select_list
         )
+        # Redraw boxes on canvas resize to follow centering offsets
+        self.view.bind_canvas_resize(self.controller.draw_boxes)
         self.view.bind_class_change(self.controller.on_class_change)
         self.view.bind_directory_select(self.controller.select_image_dir, self.controller.select_label_dir)
         self.root.bind("<Escape>", lambda _event: self._cancel_add_mode())

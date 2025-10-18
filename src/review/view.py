@@ -77,6 +77,11 @@ class LabelReviewView:
 
         self._photo = None
         self._preview_rect = None
+        self.image_x_offset = 0
+        self.image_y_offset = 0
+        self._on_resize_callback = None  # type: Optional[Callable[[], None]]
+        # Re-center image on canvas resize
+        self.canvas.bind("<Configure>", self._on_canvas_configure)
 
     # Wiring helpers
     def bind_navigation(self, on_prev: Callable[[], None], on_next: Callable[[], None]) -> None:
@@ -108,6 +113,9 @@ class LabelReviewView:
         self.canvas.bind("<ButtonRelease-1>", on_release)
         self.listbox.bind("<<ListboxSelect>>", on_select_list)
 
+    def bind_canvas_resize(self, on_resize: Callable[[], None]) -> None:
+        self._on_resize_callback = on_resize
+
     def bind_class_change(self, on_change: Callable[[int], None]) -> None:
         def _on_sel(_event=None):
             try:
@@ -123,7 +131,15 @@ class LabelReviewView:
 
     # Render helpers
     def render_image_fit(self, image: Image.Image) -> tuple[int, int]:
-        scale = min(CANVAS_MAX_WIDTH / image.width, CANVAS_MAX_HEIGHT / image.height, 1.0)
+        # Fit the image to the current canvas size (fallback to configured max)
+        try:
+            cw = int(self.canvas.winfo_width())
+            ch = int(self.canvas.winfo_height())
+            if cw <= 1 or ch <= 1:
+                raise ValueError
+        except Exception:
+            cw, ch = CANVAS_MAX_WIDTH, CANVAS_MAX_HEIGHT
+        scale = min(cw / image.width, ch / image.height, 1.0)
         display_size = (max(1, int(image.width * scale)), max(1, int(image.height * scale)))
         try:
             resample = Image.Resampling.BILINEAR
@@ -131,10 +147,34 @@ class LabelReviewView:
             resample = getattr(Image, "BILINEAR", 2)
         resized = image.resize(display_size, resample)
         self._photo = ImageTk.PhotoImage(resized)
-        self.canvas.configure(width=display_size[0], height=display_size[1])
+        # Center the image within the current canvas size using offsets
+        x_off = max(0, (cw - display_size[0]) // 2)
+        y_off = max(0, (ch - display_size[1]) // 2)
+        self.image_x_offset = x_off
+        self.image_y_offset = y_off
         self.canvas.delete("all")
-        self.canvas.create_image(0, 0, anchor="nw", image=self._photo)
+        self.canvas.create_image(x_off, y_off, anchor="nw", image=self._photo)
         return display_size
+
+    # Internal: handle canvas resizing to re-center the current image
+    def _on_canvas_configure(self, event: tk.Event) -> None:
+        if self._photo is None:
+            return
+        cw = int(event.width)
+        ch = int(event.height)
+        iw = int(self._photo.width())
+        ih = int(self._photo.height())
+        self.image_x_offset = max(0, (cw - iw) // 2)
+        self.image_y_offset = max(0, (ch - ih) // 2)
+        # Redraw the image at the new offset; keep existing scale
+        self.canvas.delete("all")
+        self.canvas.create_image(self.image_x_offset, self.image_y_offset, anchor="nw", image=self._photo)
+        # Let controller redraw boxes with new offsets
+        if self._on_resize_callback:
+            try:
+                self._on_resize_callback()
+            except Exception:
+                pass
 
     def set_status(self, text: str) -> None:
         self.status.configure(text=text)
