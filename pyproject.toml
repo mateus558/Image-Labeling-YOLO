@@ -3,13 +3,13 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "image-labeling-tools"
-version = "0.1.1"
+name = "image-labeling-yolo"
+version = "0.1.2"
 description = "Tkinter GUI for reviewing and editing YOLO labels."
-readme = "README.md"
+readme = "README_PYPI.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
-authors = [{name = "Your Name"}]
+authors = [{name = "Mateus Coutinho Marim"}]
 dependencies = [
   "pillow",
 ]
