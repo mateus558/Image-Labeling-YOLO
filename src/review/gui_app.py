@@ -54,7 +54,12 @@ class LabelReviewApp:
         self.view.bind_canvas(
             self.controller.on_canvas_press, self.controller.on_canvas_drag, self.controller.on_canvas_release, self.controller.on_select_list
         )
+        self.view.bind_class_change(self.controller.on_class_change)
         self.root.bind("<Escape>", lambda _event: self._cancel_add_mode())
+        # Quick class hotkeys: number keys 0-9 set current class or apply to selection
+        for k in list("0123456789"):
+            self.root.bind(k, self._on_digit_class)
+            self.root.bind(k.upper(), self._on_digit_class)
         self.root.bind("n", lambda _event: self.next_image())
         self.root.bind("N", lambda _event: self.next_image())
         self.root.bind("p", lambda _event: self.prev_image())
@@ -188,3 +193,11 @@ class LabelReviewApp:
 
     def _draw_handles(self, idx: int, x1: float, y1: float, x2: float, y2: float) -> None:
         canvas_utils.draw_handles(self.canvas, idx, x1, y1, x2, y2)
+
+    # Local key handler to route digit keys for class changes
+    def _on_digit_class(self, event: tk.Event) -> None:
+        try:
+            digit = int(event.keysym)  # keysym is '0'..'9'
+        except Exception:
+            return
+        self.controller.on_class_change(digit)

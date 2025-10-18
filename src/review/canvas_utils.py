@@ -11,6 +11,8 @@ from .constants import (
     BOX_LINE_WIDTH,
     COLOR_BOX,
     COLOR_BOX_SELECTED,
+    COLOR_LABEL_BG,
+    COLOR_LABEL_TEXT,
     HANDLE_SIZE,
 )
 from .models import LabelBox
@@ -51,16 +53,59 @@ def draw_handles(canvas, idx: int, x1: float, y1: float, x2: float, y2: float) -
         )
 
 
-def draw_boxes(canvas, boxes: Sequence[LabelBox], selected_indices: Iterable[int], display_width: int, display_height: int) -> None:
+def draw_boxes(
+    canvas,
+    boxes: Sequence[LabelBox],
+    selected_indices: Iterable[int],
+    display_width: int,
+    display_height: int,
+    class_names: Sequence[str] | None = None,
+) -> None:
     selected = set(int(i) for i in selected_indices)
     canvas.delete("box")
     canvas.delete("handle")
+    canvas.delete("label")
     for idx, box in enumerate(boxes):
         x1, y1, x2, y2 = normalized_to_canvas(box, display_width, display_height)
         color = COLOR_BOX_SELECTED if idx in selected else COLOR_BOX
         canvas.create_rectangle(
             x1, y1, x2, y2, outline=color, width=BOX_LINE_WIDTH, tags=("box", f"box-{idx}")
         )
+        # Draw class label above the box (if provided)
+        label_text = None
+        if class_names is not None and 0 <= box.class_id < len(class_names):
+            label_text = class_names[box.class_id]
+        else:
+            label_text = str(box.class_id)
+        # Background rectangle behind text for readability
+        # Measure approximate width; tkinter doesn't provide pre-measure easily without font metrics
+        # so we pad a bit around the text.
+        try:
+            text_id = canvas.create_text(
+                x1 + 4,
+                max(0, y1 - 10),
+                anchor="sw",
+                text=label_text,
+                fill=COLOR_LABEL_TEXT,
+                tags=("label", f"label-{idx}"),
+            )
+            bbox = canvas.bbox(text_id)
+            if bbox is not None:
+                lx1, ly1, lx2, ly2 = bbox
+                pad = 2
+                bg = canvas.create_rectangle(
+                    lx1 - pad,
+                    ly1 - pad,
+                    lx2 + pad,
+                    ly2 + pad,
+                    fill=COLOR_LABEL_BG,
+                    outline="",
+                    tags=("label", f"label-bg-{idx}"),
+                )
+                canvas.tag_lower(bg, text_id)
+        except Exception:
+            # If drawing text fails for any reason, skip gracefully
+            pass
         if idx in selected:
             draw_handles(canvas, idx, x1, y1, x2, y2)
     canvas.tag_raise("handle")

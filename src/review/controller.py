@@ -12,7 +12,7 @@ from PIL import Image
 
 import tkinter as tk
 
-from .io import discover_images, read_yolo_labels, write_yolo_labels
+from .io import discover_images, read_yolo_labels, write_yolo_labels, read_class_names_from_yaml
 from .models import LabelBox
 from .constants import MIN_BOX_SIZE_NORM
 from . import canvas_utils
@@ -48,6 +48,12 @@ class LabelReviewController:
         self.dirty = False
         self.resize_target: tuple[int, str] | None = None
         self.resize_start_box: LabelBox | None = None
+        # Class handling
+        dataset_root = self._infer_dataset_root()
+        self.class_names: List[str] = read_class_names_from_yaml(dataset_root)
+        self.current_class_id: int = 0
+        self.view.set_class_names(self.class_names)
+        self.view.set_current_class_id(self.current_class_id)
 
     def _label_path(self, image_path: Path) -> Path:
         return self.label_dir / f"{image_path.stem}.txt"
@@ -60,8 +66,10 @@ class LabelReviewController:
         self._update_title()
         self._refresh_list()
         self.view.set_status(
-            "Use arrow keys or N/P to navigate. A to add, D to delete, S to save. Esc cancels add mode."
+            "Arrows/N/P to navigate. A add, D delete, S save. 0-9 sets class. Esc cancels."
         )
+        # Keep class selector synced with single selection
+        self._sync_class_selector_with_selection()
 
     # View helpers
     def _update_title(self) -> None:
@@ -77,11 +85,22 @@ class LabelReviewController:
         self.draw_boxes()
 
     def draw_boxes(self) -> None:
-        canvas_utils.draw_boxes(self.view.canvas, self.boxes, self.view.get_selected_indices(), self.display_width, self.display_height)
+        canvas_utils.draw_boxes(
+            self.view.canvas,
+            self.boxes,
+            self.view.get_selected_indices(),
+            self.display_width,
+            self.display_height,
+            self.class_names,
+        )
 
     # Formatting
     def _format_box_summary(self, idx: int, box: LabelBox) -> str:
-        return f"#{idx+1}: x={box.x_center:.2f} y={box.y_center:.2f} w={box.width:.2f} h={box.height:.2f}"
+        cname = self._class_name(box.class_id)
+        return (
+            f"#{idx+1} [{box.class_id}:{cname}] x={box.x_center:.2f} y={box.y_center:.2f} "
+            f"w={box.width:.2f} h={box.height:.2f}"
+        )
 
     # Navigation
     def prev_image(self) -> None:
@@ -97,6 +116,7 @@ class LabelReviewController:
     # Selection
     def on_select_list(self, _event: tk.Event) -> None:
         self.draw_boxes()
+        self._sync_class_selector_with_selection()
 
     # Add/delete/save
     def start_add_box(self) -> None:
@@ -200,7 +220,13 @@ class LabelReviewController:
             return
         x_center = (x0n + x1n) / 2
         y_center = (y0n + y1n) / 2
-        new_box = LabelBox(class_id=0, x_center=x_center, y_center=y_center, width=width, height=height).clamp()
+        new_box = LabelBox(
+            class_id=self.current_class_id,
+            x_center=x_center,
+            y_center=y_center,
+            width=width,
+            height=height,
+        ).clamp()
         self.boxes.append(new_box)
         self._refresh_list()
         self.add_mode = False
@@ -319,7 +345,45 @@ class LabelReviewController:
         items = [self._format_box_summary(i, b) for i, b in enumerate(self.boxes)]
         self.view.set_list_items(items)
         self.view.set_selection(selected)
-        
+        self._sync_class_selector_with_selection()
+
     def _set_dirty(self, value: bool) -> None:
         self.dirty = value
         self._update_title()
+
+    # Class helpers and wiring
+    def _infer_dataset_root(self) -> Path:
+        # Try images/.../train -> dataset root two levels up
+        if self.image_dir.name in {"train", "val", "test"} and self.image_dir.parent.name == "images":
+            return self.image_dir.parents[1]
+        if self.label_dir.name in {"train", "val", "test"} and self.label_dir.parent.name == "labels":
+            return self.label_dir.parents[1]
+        # Fallback to common parent
+        return self.image_dir.parent
+
+    def _class_name(self, class_id: int) -> str:
+        if 0 <= class_id < len(self.class_names):
+            return self.class_names[class_id]
+        return str(class_id)
+
+    def on_class_change(self, class_id: int) -> None:
+        # Update current class selection and optionally apply to selected boxes
+        self.current_class_id = class_id
+        selected = self.view.get_selected_indices()
+        if selected:
+            for idx in selected:
+                if 0 <= idx < len(self.boxes):
+                    self.boxes[idx].class_id = class_id
+            self._set_dirty(True)
+            self._refresh_list()
+        else:
+            # No selection; just update status
+            self.view.set_status(f"Current class set to {class_id}:{self._class_name(class_id)}")
+
+    def _sync_class_selector_with_selection(self) -> None:
+        selected = self.view.get_selected_indices()
+        if len(selected) == 1:
+            cid = self.boxes[selected[0]].class_id
+            self.view.set_current_class_id(cid)
+        else:
+            self.view.set_current_class_id(self.current_class_id)

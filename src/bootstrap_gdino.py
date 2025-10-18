@@ -34,8 +34,7 @@ except ImportError as exc:
 LOGGER = logging.getLogger("bootstrap_gdino")
 
 DEFAULT_PROMPT = (
-    "exercise machine display, treadmill console, rowing machine monitor, "
-    "bike computer, elliptical console"
+    "exercise machine display"
 )
 DEFAULT_BOX_THR = 0.25
 DEFAULT_TEXT_THR = 0.25

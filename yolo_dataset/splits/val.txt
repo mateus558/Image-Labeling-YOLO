@@ -1,0 +1,15 @@
+/home/mateuscmarim/Projects/image_labeling/yolo_dataset/images/train/reply-7109517.jpg
+/home/mateuscmarim/Projects/image_labeling/yolo_dataset/images/train/reply-6932818.jpg
+/home/mateuscmarim/Projects/image_labeling/yolo_dataset/images/train/reply-6943775.jpg
+/home/mateuscmarim/Projects/image_labeling/yolo_dataset/images/train/reply-7107020.jpg
+/home/mateuscmarim/Projects/image_labeling/yolo_dataset/images/train/reply-6835900.jpg
+/home/mateuscmarim/Projects/image_labeling/yolo_dataset/images/train/reply-7107818.jpg
+/home/mateuscmarim/Projects/image_labeling/yolo_dataset/images/train/reply-7111152.jpg
+/home/mateuscmarim/Projects/image_labeling/yolo_dataset/images/train/reply-7100413.jpg
+/home/mateuscmarim/Projects/image_labeling/yolo_dataset/images/train/reply-6952654.jpg
+/home/mateuscmarim/Projects/image_labeling/yolo_dataset/images/train/reply-6932836.jpg
+/home/mateuscmarim/Projects/image_labeling/yolo_dataset/images/train/reply-7009759.jpg
+/home/mateuscmarim/Projects/image_labeling/yolo_dataset/images/train/reply-7106987.jpg
+/home/mateuscmarim/Projects/image_labeling/yolo_dataset/images/train/reply-7089864.jpg
+/home/mateuscmarim/Projects/image_labeling/yolo_dataset/images/train/reply-7111330.jpg
+/home/mateuscmarim/Projects/image_labeling/yolo_dataset/images/train/reply-6943744.jpg

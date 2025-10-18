@@ -74,8 +74,29 @@ pip install -r requirements.txt
    - **Save** writes the corresponding YOLO label file.
 
 5. **Train YOLOv8**
-   - Create a standard Ultralytics dataset YAML that points at `yolo_dataset/images/train` and `yolo_dataset/labels/train`.
-   - Kick off training with `yolo detect train ...`.
+     - Use the provided helper script to auto-split, write `data.yaml`, and launch Ultralytics training:
+
+     ```bash
+     python src/train_yolo.py \
+       --model yolov8n.pt \
+       --epochs 50 \
+       --imgsz 640 \
+       --batch 16 \
+       --val-frac 0.1
+     ```
+
+     - Assumes images live in `yolo_dataset/images/train` and labels in `yolo_dataset/labels/train`.
+     - Optionally create `yolo_dataset/classes.txt` with one class name per line; defaults to `display` if missing.
+     - Best weights will be saved under `runs/train/<run-name>/weights/best.pt`.
+
+    Offline/proxy environments:
+
+    - If pretrained weights fail to download (SSL/proxy), add `--offline` to train from the architecture YAML instead of `.pt` weights:
+
+    ```bash
+    python src/train_yolo.py --offline
+    ```
+    - Alternatively, manually download a weights file (e.g., `yolov8n.pt`) and pass its local path to `--model`.
 
 ## Tips
 
