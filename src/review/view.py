@@ -84,6 +84,7 @@ class LabelReviewView:
         # Bottom status bar spanning the window
         self.status = ttk.Label(self.root, text="", anchor="w")
         self.status.grid(row=1, column=0, columnspan=2, sticky="ew", padx=8, pady=(0, 8))
+        self.canvas_message_id = None
 
     # Wiring helpers
     def bind_navigation(self, on_prev: Callable[[], None], on_next: Callable[[], None]) -> None:
@@ -159,6 +160,7 @@ class LabelReviewView:
         self.image_y_offset = y_off
         self.clear_crosshair()
         self.canvas.delete("all")
+        self.canvas_message_id = None
         self.canvas.create_image(x_off, y_off, anchor="nw", image=self._photo, tags=("image",))
         return display_size
 
@@ -222,6 +224,7 @@ class LabelReviewView:
         # Redraw the image at the new offset; keep existing scale
         self.clear_crosshair()
         self.canvas.delete("all")
+        self.canvas_message_id = None
         self.canvas.create_image(self.image_x_offset, self.image_y_offset, anchor="nw", image=self._photo, tags=("image",))
         # Let controller redraw boxes with new offsets
         if self._on_resize_callback:
@@ -229,6 +232,33 @@ class LabelReviewView:
                 self._on_resize_callback()
             except Exception:
                 pass
+
+    def show_canvas_message(self, lines: Sequence[str] | str) -> None:
+        self.clear_crosshair()
+        try:
+            self.canvas.delete("all")
+        except Exception:
+            pass
+        if isinstance(lines, str):
+            text = lines
+        else:
+            text = "\n".join(lines)
+        try:
+            cw = int(self.canvas.winfo_width())
+            ch = int(self.canvas.winfo_height())
+            if cw <= 1 or ch <= 1:
+                raise ValueError
+        except Exception:
+            cw, ch = CANVAS_MAX_WIDTH, CANVAS_MAX_HEIGHT
+        self.canvas_message_id = self.canvas.create_text(
+            cw / 2,
+            ch / 2,
+            text=text,
+            fill="#b0b0b0",
+            justify="center",
+            font=("TkDefaultFont", 12),
+            tags=("canvas-message",),
+        )
 
     def set_status(self, text: str) -> None:
         self.status.configure(text=text)

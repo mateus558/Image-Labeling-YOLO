@@ -35,6 +35,7 @@ class View(Protocol):
     def clear_preview_rect(self) -> None: ...
     def update_crosshair(self, x: float, y: float) -> None: ...
     def clear_crosshair(self) -> None: ...
+    def show_canvas_message(self, lines: Sequence[str] | str) -> None: ...
 
 
 class LabelReviewController:
@@ -68,6 +69,13 @@ class LabelReviewController:
                 self.view.canvas.delete("all")
             except Exception:
                 pass
+            self.view.show_canvas_message(
+                [
+                    "No images loaded.",
+                    "Use the Folders panel to pick your image and label directories.",
+                    "After an image loads, press Add Box (A) and click two corners to add a label.",
+                ]
+            )
             self.boxes = []
             self._update_title()
             self._refresh_list()
