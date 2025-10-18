@@ -1,13 +1,13 @@
-# Gym Display Bootstrap
+# YOLO Labeling Toolkit
 
-Semi-automatic pipeline for bootstrapping bounding-box annotations of exercise machine displays. The workflow combines Grounding DINO for open-vocabulary detection with utilities that convert detections into YOLOv8-compatible datasets and a lightweight GUI for manual review.
+Semi-automatic pipeline for bootstrapping and reviewing bounding-box annotations for arbitrary objects. It pairs Grounding DINO for open‑vocabulary proposal generation with utilities that convert detections into YOLOv8‑compatible datasets and a lightweight Tkinter GUI for manual review.
 
 ## Repository Layout
 
 ```
 seed_images/
-  pos/                # images that should contain exercise-machine displays
-  neg/                # negative images without displays
+  pos/                # images that should contain your target objects
+  neg/                # negative images without the target objects
 src/
   bootstrap_gdino.py  # run Grounding DINO and dump raw detections + visualizations
   json_to_yolo.py     # convert Grounding DINO JSON into YOLO label files
@@ -38,15 +38,15 @@ pip install -r requirements.txt
 ## Workflow
 
 1. **Seed your images**
-   - Place positive samples that contain displays under `seed_images/pos`.
-   - Place negative samples (no displays) under `seed_images/neg`.
+  - Place positive samples that contain your target objects under `seed_images/pos`.
+  - Place negative samples (no target objects) under `seed_images/neg`.
 
 2. **Run Grounding DINO bootstrap**
 
    ```bash
    python src/bootstrap_gdino.py \
      --seed-dir seed_images/pos \
-     --prompt "exercise machine display, treadmill console, rowing machine monitor, bike computer, elliptical console"
+     --prompt "screen, monitor, gauge, dial, panel"  # customize to your objects
    ```
 
    - Raw detections land in `outputs/auto_labels/<image>.json`.
@@ -65,17 +65,11 @@ pip install -r requirements.txt
 
 4. **Review & correct** (optional but recommended)
 
-   Install in editable mode (recommended for CLI):
+  Launch the GUI:
 
-   ```bash
-   pip install -e .
-   ```
-
-   Launch the GUI:
-
-   ```bash
-   label-review  # or: python src/review_gui.py
-   ```
+  ```bash
+  python src/review_gui.py
+  ```
 
    - Arrow keys or N/P to navigate.
    - Add Box to draw; drag handles to resize.
@@ -95,7 +89,7 @@ pip install -r requirements.txt
      ```
 
      - Assumes images live in `yolo_dataset/images/train` and labels in `yolo_dataset/labels/train`.
-     - Optionally create `yolo_dataset/classes.txt` with one class name per line; defaults to `display` if missing.
+  - Optionally create `yolo_dataset/classes.txt` with one class name per line; if missing, the code defaults to a single class (currently `display`). Create this file to customize your class names for your use case.
      - Best weights will be saved under `runs/train/<run-name>/weights/best.pt`.
 
     Offline/proxy environments:
@@ -113,6 +107,12 @@ pip install -r requirements.txt
 - The default Grounding DINO checkpoint downloads automatically to `~/.cache/groundingdino/`; override with `--checkpoint-path` if you maintain your own weights.
 - Re-run `json_to_yolo.py` whenever you tweak JSON thresholds; it overwrites labels and re-copies images when `--overwrite` is provided.
 - Visualizations under `outputs/viz` are great for batch QA or for sharing quick progress snapshots with stakeholders.
+
+## Adapting to your use case
+
+- Prompts: Change `--prompt` in `bootstrap_gdino.py` to match your objects (comma-separated list of synonyms helps).
+- Classes: Create `yolo_dataset/classes.txt` (one class per line) to control label names and `nc` in `data.yaml`.
+- Thresholds: Tweak confidence/IoU parameters in `json_to_yolo.py` to filter or merge detections for your data.
 
 ## Development
 
