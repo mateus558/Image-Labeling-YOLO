@@ -23,7 +23,7 @@ class LabelReviewView:
         self.root.geometry("1200x800")
 
         self.canvas = tk.Canvas(self.root, width=CANVAS_MAX_WIDTH, height=CANVAS_MAX_HEIGHT, background="#202020")
-        self.canvas.grid(row=0, column=0, rowspan=6, sticky="nsew", padx=8, pady=8)
+        self.canvas.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
 
         controls = ttk.Frame(self.root)
         controls.grid(row=0, column=1, sticky="ns", padx=12, pady=12)
@@ -68,9 +68,6 @@ class LabelReviewView:
         self.btn_save = ttk.Button(controls, text="Save")
         self.btn_save.grid(row=5, column=0, columnspan=2, pady=12, sticky="ew")
 
-        self.status = ttk.Label(controls, text="")
-        self.status.grid(row=6, column=0, columnspan=2, sticky="ew", pady=6)
-
         controls.rowconfigure(1, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
         self.root.grid_rowconfigure(0, weight=1)
@@ -83,6 +80,10 @@ class LabelReviewView:
         self._on_resize_callback = None
         # Re-center image on canvas resize
         self.canvas.bind("<Configure>", self._on_canvas_configure)
+
+        # Bottom status bar spanning the window
+        self.status = ttk.Label(self.root, text="", anchor="w")
+        self.status.grid(row=1, column=0, columnspan=2, sticky="ew", padx=8, pady=(0, 8))
 
     # Wiring helpers
     def bind_navigation(self, on_prev: Callable[[], None], on_next: Callable[[], None]) -> None:
@@ -287,12 +288,27 @@ class LabelReviewView:
             self.canvas.delete(self._preview_rect)
             self._preview_rect = None
         self._preview_rect = self.canvas.create_rectangle(
-            x, y, x, y, outline=COLOR_PREVIEW, width=BOX_LINE_WIDTH, dash=PREVIEW_DASH
+            x,
+            y,
+            x,
+            y,
+            outline="#ffd54f",
+            width=BOX_LINE_WIDTH,
+            dash=(4, 2),
+            tags=("preview",),
         )
+        try:
+            self.canvas.tag_raise(self._preview_rect)
+        except Exception:
+            pass
 
     def update_preview_rect(self, x0: float, y0: float, x1: float, y1: float) -> None:
         if self._preview_rect is not None:
             self.canvas.coords(self._preview_rect, x0, y0, x1, y1)
+            try:
+                self.canvas.tag_raise(self._preview_rect)
+            except Exception:
+                pass
 
     def clear_preview_rect(self) -> None:
         if self._preview_rect is not None:

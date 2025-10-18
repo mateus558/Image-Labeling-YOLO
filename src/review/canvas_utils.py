@@ -9,6 +9,7 @@ from typing import Iterable, List, Sequence, Tuple
 
 from .constants import (
     BOX_LINE_WIDTH,
+    CLASS_COLOR_PALETTE,
     COLOR_BOX,
     COLOR_BOX_SELECTED,
     COLOR_LABEL_BG,
@@ -88,7 +89,14 @@ def draw_boxes(
     canvas.delete("label")
     for idx, box in enumerate(boxes):
         x1, y1, x2, y2 = normalized_to_canvas(box, display_width, display_height, x_offset, y_offset)
-        color = COLOR_BOX_SELECTED if idx in selected else COLOR_BOX
+        if idx in selected:
+            color = COLOR_BOX_SELECTED
+        else:
+            try:
+                palette_color = CLASS_COLOR_PALETTE[box.class_id % len(CLASS_COLOR_PALETTE)]
+            except Exception:
+                palette_color = COLOR_BOX
+            color = palette_color
         canvas.create_rectangle(
             x1, y1, x2, y2, outline=color, width=BOX_LINE_WIDTH, tags=("box", f"box-{idx}")
         )
