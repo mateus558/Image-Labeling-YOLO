@@ -2,6 +2,10 @@
 
 Semi-automatic pipeline for bootstrapping and reviewing bounding-box annotations for arbitrary objects. It pairs Grounding DINO for open‑vocabulary proposal generation with utilities that convert detections into YOLOv8‑compatible datasets and a lightweight Tkinter GUI for manual review.
 
+![GUI demo](example.gif)
+
+Figure: quick demo of the reviewer GUI — click Add Box (A), then click two corners to create a bounding box.
+
 ## Repository Layout
 
 ```
