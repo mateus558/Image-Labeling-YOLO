@@ -10,9 +10,10 @@ SUPPORTED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp"}
 
 
 def discover_images(image_dir: Path) -> List[Path]:
-    return sorted(
-        path for path in image_dir.iterdir() if path.suffix.lower() in SUPPORTED_IMAGE_EXTS
-    )
+    # If the folder doesn't exist or isn't a directory, return an empty list
+    if not image_dir or not image_dir.exists() or not image_dir.is_dir():
+        return []
+    return sorted(path for path in image_dir.iterdir() if path.suffix.lower() in SUPPORTED_IMAGE_EXTS)
 
 
 def read_yolo_labels(label_path: Path) -> List[LabelBox]:

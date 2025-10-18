@@ -28,7 +28,14 @@ class LabelReviewApp:
     def __init__(self, image_dir: Path, label_dir: Path) -> None:
         self.image_dir = image_dir
         self.label_dir = label_dir
-        self.image_paths = discover_images(self.image_dir)
+        # Defensive: don't raise if default folders are missing; show empty state instead
+        try:
+            if self.image_dir is None or not self.image_dir.exists() or not self.image_dir.is_dir():
+                self.image_paths = []
+            else:
+                self.image_paths = discover_images(self.image_dir)
+        except Exception:
+            self.image_paths = []
 
         self.index = 0
         self.boxes: List[LabelBox] = []
