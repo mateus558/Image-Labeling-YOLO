@@ -12,7 +12,7 @@ from tkinter import ttk
 
 from PIL import Image, ImageTk
 
-from .constants import BOX_LINE_WIDTH, CANVAS_MAX_HEIGHT, CANVAS_MAX_WIDTH
+from .constants import BOX_LINE_WIDTH, CANVAS_MAX_HEIGHT, CANVAS_MAX_WIDTH, COLOR_PREVIEW, PREVIEW_DASH
 
 
 class LabelReviewView:
@@ -50,7 +50,8 @@ class LabelReviewView:
         self.root.grid_columnconfigure(0, weight=1)
         self.root.grid_rowconfigure(0, weight=1)
 
-        self._photo: ImageTk.PhotoImage | None = None
+        self._photo = None
+        self._preview_rect = None
 
     # Wiring helpers
     def bind_navigation(self, on_prev: Callable[[], None], on_next: Callable[[], None]) -> None:
@@ -115,3 +116,21 @@ class LabelReviewView:
 
     def mainloop(self) -> None:
         self.root.mainloop()
+
+    # Preview rectangle helpers (for add mode)
+    def start_preview_rect(self, x: float, y: float) -> None:
+        if self._preview_rect is not None:
+            self.canvas.delete(self._preview_rect)
+            self._preview_rect = None
+        self._preview_rect = self.canvas.create_rectangle(
+            x, y, x, y, outline=COLOR_PREVIEW, width=BOX_LINE_WIDTH, dash=PREVIEW_DASH
+        )
+
+    def update_preview_rect(self, x0: float, y0: float, x1: float, y1: float) -> None:
+        if self._preview_rect is not None:
+            self.canvas.coords(self._preview_rect, x0, y0, x1, y1)
+
+    def clear_preview_rect(self) -> None:
+        if self._preview_rect is not None:
+            self.canvas.delete(self._preview_rect)
+            self._preview_rect = None

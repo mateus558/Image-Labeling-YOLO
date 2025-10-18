@@ -72,3 +72,22 @@ def box_corners_norm(box: LabelBox) -> Tuple[float, float, float, float]:
     x2 = box.x_center + box.width / 2
     y2 = box.y_center + box.height / 2
     return x1, y1, x2, y2
+
+
+def detect_handle(canvas) -> tuple[int, str] | None:
+    """Return (box_index, corner) if the current canvas item is a handle.
+
+    Expects handle tags in the form 'handle-{idx}-{corner}'.
+    """
+    current = canvas.find_withtag("current")
+    if not current:
+        return None
+    tags = canvas.gettags(current[0])
+    for tag in tags:
+        if tag.startswith("handle-"):
+            try:
+                _, idx_str, corner = tag.split("-", 2)
+                return int(idx_str), corner
+            except ValueError:
+                return None
+    return None
